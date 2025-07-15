@@ -1,0 +1,39 @@
+# Configuration for protein disentanglement experiments
+data:
+  fasta_path: "data/my_proteins.fasta"
+  max_len: 512
+  batch_size: 32
+  num_workers: 4
+
+embedding:
+  model_name: "esm2_t33_650M_UR50D"  # or "prot_t5_xl_uniref50"
+  aggregation: "mean"  # "mean", "cls", "max"
+  device: "cuda"
+
+vae:
+  z_dim: 32
+  hidden_dim: 256
+  beta: 4.0
+  learning_rate: 1e-3
+
+simclr:
+  proj_dim: 64
+  temperature: 0.5
+  learning_rate: 3e-4
+
+training:
+  max_epochs: 100
+  accelerator: "gpu"
+  log_every_n_steps: 10
+  check_val_every_n_epoch: 5
+
+experiment:
+  name: "protein_disentanglement"
+  save_dir: "experiments"
+  seed: 42
+
+# For AWS deployment
+aws:
+  instance_type: "g4dn.xlarge"
+  spot_instance: true
+  s3_bucket: "your-protein-experiments-bucket"

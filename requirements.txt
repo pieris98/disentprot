@@ -1,0 +1,15 @@
+torch>=2.0.0
+torchvision
+pytorch-lightning>=2.0.0
+transformers>=4.21.0
+fair-esm
+biopython>=1.80
+datasets>=2.0.0
+scikit-learn>=1.0.0
+numpy>=1.21.0
+pandas
+tqdm
+matplotlib
+seaborn
+wandb  # for experiment tracking
+hydra-core  # for configuration management
