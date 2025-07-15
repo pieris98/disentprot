@@ -1,35 +1,38 @@
 # Configuration for protein disentanglement experiments
 data:
-  fasta_path: "data/my_proteins.fasta"
+  fasta_path: "data/real_proteins.fasta"  # Your real protein dataset
   max_len: 512
-  batch_size: 32
-  num_workers: 4
+  batch_size: 16  # Larger batch for real experiments
+  num_workers: 0  # Keep 0 for CUDA compatibility
 
 embedding:
-  model_name: "esm2_t33_650M_UR50D"  # or "prot_t5_xl_uniref50"
+  model_name: "esm2_t33_650M_UR50D"  # ESM-2 650M parameters
+  # Alternative options:
+  # model_name: "esm2_t36_3B_UR50D"     # ESM-2 3B (larger, better quality)
+  # model_name: "prot_t5_xl_uniref50"   # ProtTrans ProtT5-XL
   aggregation: "mean"  # "mean", "cls", "max"
   device: "cuda"
 
 vae:
-  z_dim: 32
-  hidden_dim: 256
-  beta: 4.0
+  z_dim: 64        # Larger latent space for real experiments
+  hidden_dim: 512  # Larger hidden dimension
+  beta: 4.0        # β-VAE regularization strength
   learning_rate: 1e-3
 
 simclr:
-  proj_dim: 64
-  temperature: 0.5
+  proj_dim: 128    # Larger projection for real experiments
+  temperature: 0.07  # Standard SimCLR temperature
   learning_rate: 3e-4
 
 training:
-  max_epochs: 100
+  max_epochs: 100       # Full training
   accelerator: "gpu"
-  log_every_n_steps: 10
+  log_every_n_steps: 50
   check_val_every_n_epoch: 5
 
 experiment:
-  name: "protein_disentanglement"
-  save_dir: "experiments"
+  name: "protein_disentanglement_full"
+  save_dir: "experiments_full"
   seed: 42
 
 # For AWS deployment

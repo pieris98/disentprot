@@ -9,6 +9,18 @@ import torch
 import pytorch_lightning as pl
 from omegaconf import OmegaConf
 import logging
+import multiprocessing as mp
+
+# Fix CUDA multiprocessing issues BEFORE importing any CUDA modules
+if torch.cuda.is_available():
+    try:
+        if mp.get_start_method(allow_none=True) is None:
+            mp.set_start_method('spawn', force=True)
+        os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # For deterministic CUDA operations
+        torch.set_float32_matmul_precision('medium')
+    except RuntimeError:
+        pass  # Already set
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -96,9 +108,14 @@ def main():
     
     # Debug mode
     if args.debug:
-        config.training.max_epochs = 2
+        config.training.max_epochs = 3
         config.data.batch_size = 4
-        logger.info("Running in debug mode")
+        config.vae.z_dim = 16
+        config.vae.hidden_dim = 128
+        config.vae.beta = 1.0
+        config.simclr.proj_dim = 32
+        logger.info("Running in debug mode with reduced parameters")
+    
     
     # Create sample data if needed
     if not os.path.exists(config.data.fasta_path):

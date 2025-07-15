@@ -74,19 +74,21 @@ class ExperimentRunner:
             generator=torch.Generator().manual_seed(self.config.experiment.seed)
         )
         
-        # Create dataloaders
+        # Create dataloaders with CUDA-safe settings
+        num_workers = 0 if torch.cuda.is_available() else self.config.data.get('num_workers', 4)
+        
         train_loader = get_dataloader(
             train_dataset,
             batch_size=self.config.data.batch_size,
             shuffle=True,
-            num_workers=self.config.data.num_workers
+            num_workers=num_workers
         )
         
         val_loader = get_dataloader(
             val_dataset,
             batch_size=self.config.data.batch_size,
             shuffle=False,
-            num_workers=self.config.data.num_workers
+            num_workers=num_workers
         )
         
         return train_loader, val_loader, emb_dim
@@ -128,14 +130,14 @@ class ExperimentRunner:
         callbacks = [
             ModelCheckpoint(
                 dirpath=os.path.join(self.config.experiment.save_dir, "checkpoints"),
-                filename=f"{model_name}-{{epoch:02d}}-{{val_loss:.2f}}",
-                monitor="val/loss" if "vae" in model_name else "val/simclr_loss",
+                filename=f"{model_name}-{{epoch:02d}}-{{train_loss:.2f}}",
+                monitor="train/loss",  # Use train loss for small datasets
                 mode="min",
                 save_top_k=3,
                 save_last=True
             ),
             EarlyStopping(
-                monitor="val/loss" if "vae" in model_name else "val/simclr_loss",
+                monitor="train/loss",  # Use train loss for small datasets
                 patience=15,
                 mode="min",
                 verbose=True
@@ -156,9 +158,12 @@ class ExperimentRunner:
             devices=1,
             callbacks=callbacks,
             logger=wandb_logger,
-            log_every_n_steps=self.config.training.log_every_n_steps,
-            check_val_every_n_epoch=self.config.training.check_val_every_n_epoch,
-            deterministic=True
+            log_every_n_steps=1,  # Log every step for small datasets
+            check_val_every_n_epoch=1,  # Check validation every epoch
+            deterministic=False,  # Disable deterministic for CUDA compatibility
+            enable_progress_bar=True,
+            enable_model_summary=True,
+            num_sanity_val_steps=0,  # Skip sanity check for small datasets
         )
         
         return trainer
@@ -167,8 +172,12 @@ class ExperimentRunner:
         """Run a single experiment."""
         logger.info(f"Starting {model_type} experiment...")
         
-        # Set seed
-        pl.seed_everything(self.config.experiment.seed)
+        # Set seed with better CUDA handling
+        pl.seed_everything(self.config.experiment.seed, workers=True)
+        
+        # Set environment variables for CUDA determinism if needed
+        if torch.cuda.is_available():
+            os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
         
         # Prepare data
         train_loader, val_loader, emb_dim = self.prepare_data()

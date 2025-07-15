@@ -163,4 +163,19 @@ class SimCLRTrainer(pl.LightningModule):
             },
         }
 
-    def get_representations(self, dataloader) -> Tuple[torch.Tensor,
+    def get_representations(self, dataloader) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Extract representations and projections for analysis."""
+        self.eval()
+        representations = []
+        projections = []
+        
+        with torch.no_grad():
+            for batch in dataloader:
+                emb = batch['emb'].to(self.device)
+                h = self.encoder(emb)
+                z = self.projection_head(h)
+                
+                representations.append(h.cpu())
+                projections.append(z.cpu())
+        
+        return torch.cat(representations), torch.cat(projections)

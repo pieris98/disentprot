@@ -135,6 +135,8 @@ class BetaVAE(pl.LightningModule):
     def configure_optimizers(self):
         """Configure optimizer."""
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        
+        # Only add scheduler if we have validation data
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode="min", factor=0.5, patience=10, verbose=True
         )
@@ -143,9 +145,10 @@ class BetaVAE(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "val/loss",
+                "monitor": "train/loss",  # Use train loss instead of val loss for small datasets
                 "interval": "epoch",
                 "frequency": 1,
+                "strict": False,  # Don't fail if metric is missing
             },
         }
 

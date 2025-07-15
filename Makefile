@@ -21,22 +21,26 @@ install:
 
 # Quick test
 test:
-	python train.py --debug --model beta_vae
+	CUDA_LAUNCH_BLOCKING=1 CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --debug --model beta_vae
 	@echo "Test completed!"
+
+test-cpu:
+	CUDA_VISIBLE_DEVICES="" python train.py --debug --model beta_vae
+	@echo "CPU test completed!"
 
 # Training
 train:
-	python train.py --model all --gpu
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --model all --gpu
 	@echo "Training completed!"
 
 train-beta:
-	python train.py --model beta_vae --gpu
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --model beta_vae --gpu
 
 train-factor:
-	python train.py --model factor_vae --gpu
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --model factor_vae --gpu
 
 train-simclr:
-	python train.py --model simclr --gpu
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --model simclr --gpu
 
 # Evaluation  
 evaluate:
@@ -59,6 +63,39 @@ data:
 	mkdir -p data
 	python -c "from src.data.utils import create_sample_fasta; create_sample_fasta('data/sample_proteins.fasta', 1000)"
 	@echo "Sample data created!"
+
+data-real:
+	python download_protein_data.py --dataset sample --num_sequences 5000 --output data/real_proteins.fasta
+	@echo "Real protein dataset created!"
+
+data-pfam:
+	python download_protein_data.py --dataset pfam --output data/pfam_proteins.fasta
+	@echo "Pfam protein families downloaded!"
+
+data-covid:
+	python download_protein_data.py --dataset covid --output data/covid_proteins.fasta
+	@echo "COVID-19 proteins downloaded!"
+
+# Full-scale training
+train-full:
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --config config_full.yaml --model all --gpu
+	@echo "Full-scale training completed!"
+
+train-full-beta:
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --config config_full.yaml --model beta_vae --gpu
+
+train-full-factor:
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --config config_full.yaml --model factor_vae --gpu
+
+train-full-simclr:
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --config config_full.yaml --model simclr --gpu
+
+# Experiment with different datasets
+experiment-pfam:
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --config config_full.yaml --fasta data/pfam_proteins.fasta --model all --gpu
+
+experiment-covid:
+	CUBLAS_WORKSPACE_CONFIG=:4096:8 python train.py --config config_full.yaml --fasta data/covid_proteins.fasta --model all --gpu
 
 # Cleaning
 clean:
@@ -103,8 +140,13 @@ notebook:
 
 # Monitoring
 monitor:
-	@echo "Monitoring training progress..."
-	tail -f logs/training.log
+	python monitor_training.py --action monitor
+
+progress:
+	python monitor_training.py --action progress
+
+plot-curves:
+	python monitor_training.py --action plot
 
 gpu-status:
 	nvidia-smi

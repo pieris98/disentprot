@@ -199,10 +199,15 @@ def get_dataloader(
     num_workers: int = 4,
 ) -> DataLoader:
     """Create DataLoader with standard settings."""
+    # Fix CUDA multiprocessing issue by setting num_workers=0 when using CUDA
+    if torch.cuda.is_available():
+        num_workers = 0  # Avoid CUDA fork issue
+        
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
         pin_memory=torch.cuda.is_available(),
+        persistent_workers=False if num_workers == 0 else True,
     )
